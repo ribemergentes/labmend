@@ -147,8 +147,8 @@ export default function UsersPage() {
             <label className="label-field">Contraseña {editing?'(dejar vacío para no cambiar)':'*'}</label>
             <div className="relative">
               <input type={showPw?'text':'password'} className="input-field pr-10"
-                value={form.password} onChange={set('password')} placeholder={editing?'Nueva contraseña...':'Contraseña...'}
-                required={!editing}/>
+                value={form.password} onChange={set('password')} placeholder={editing?'Nueva contraseña (mín. 8 caracteres)...':'Mínimo 8 caracteres...'}
+                required={!editing} minLength={form.password?8:undefined}/>
               <button type="button" onClick={()=>setShowPw(!showPw)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                 {showPw?<EyeOff size={15}/>:<Eye size={15}/>}

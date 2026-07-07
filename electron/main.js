@@ -172,11 +172,14 @@ function initDb(db) {
   `)
 
   // Users — solo admin inicial (los demás vienen de Supabase)
-  const { createHash } = require('crypto')
+  // Hash PBKDF2 con salt, mismo formato que verifica src/services/auth.js
   const adminExists = db.prepare("SELECT id FROM users WHERE role='administrador' LIMIT 1").get()
   if (!adminExists) {
+    const { pbkdf2Sync, randomBytes } = require('crypto')
+    const salt = randomBytes(16).toString('hex')
+    const hash = pbkdf2Sync('admin123', Buffer.from(salt,'hex'), 100000, 32, 'sha256').toString('hex')
     db.prepare("INSERT OR IGNORE INTO users (id,name,email,password_hash,role) VALUES (?,?,?,?,?)")
-      .run(uid(),'Administrador','admin@labmend.com',createHash('sha256').update('admin123').digest('hex'),'administrador')
+      .run(uid(),'Administrador','admin@labmend.com',`pbkdf2$100000$${salt}$${hash}`,'administrador')
   }
 
   // ── Migraciones de esquema (ANTES del seed para que las columnas existan) ───

@@ -1,12 +1,83 @@
 import { db, generateId, isElectron } from './database'
 import { supabase, isSupabaseConfigured } from './supabase'
 
-// ── SHA-256 (fallback offline) ────────────────────────────────────────────────
+// ── Hashing de contraseñas (acceso offline) ───────────────────────────────────
+// Formato moderno: pbkdf2$<iteraciones>$<salt hex>$<hash hex>  (PBKDF2-HMAC-SHA256)
+// Formato legado:  64 hex chars = SHA-256 sin salt (instalaciones previas).
+// El login acepta ambos y actualiza el legado al formato moderno de forma
+// transparente en el primer inicio de sesión exitoso.
+const PBKDF2_ITERATIONS = 100000
+
 async function sha256(str) {
   const buf  = new TextEncoder().encode(str)
   const hash = await crypto.subtle.digest('SHA-256', buf)
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('')
 }
+
+const toHex   = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('')
+const fromHex = (hex)   => new Uint8Array(hex.match(/.{2}/g).map(h => parseInt(h,16)))
+
+async function pbkdf2(password, saltBytes, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits(
+    { name:'PBKDF2', hash:'SHA-256', salt:saltBytes, iterations }, key, 256
+  )
+  return toHex(new Uint8Array(bits))
+}
+
+export async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const hash = await pbkdf2(password, salt, PBKDF2_ITERATIONS)
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${toHex(salt)}$${hash}`
+}
+
+async function verifyPassword(password, stored) {
+  if (!stored) return { ok:false, legacy:false }
+  if (stored.startsWith('pbkdf2$')) {
+    const [, iters, saltHex, hashHex] = stored.split('$')
+    const computed = await pbkdf2(password, fromHex(saltHex), parseInt(iters))
+    return { ok: computed === hashHex, legacy:false }
+  }
+  // Legado: SHA-256 sin salt
+  return { ok: (await sha256(password)) === stored, legacy:true }
+}
+
+// Verifica contra la fila local y, si el hash es legado y coincide,
+// lo actualiza al formato moderno (silencioso; no afecta la sesión).
+async function verifyLocalUser(email, password) {
+  if (!isElectron) return null
+  const user = await db.get('SELECT * FROM users WHERE LOWER(email)=? AND active=1', [email])
+  if (!user) return null
+  const { ok, legacy } = await verifyPassword(password, user.password_hash)
+  if (!ok) return null
+  if (legacy) {
+    try {
+      const upgraded = await hashPassword(password)
+      await db.run('UPDATE users SET password_hash=? WHERE id=?', [upgraded, user.id])
+    } catch {}
+  }
+  return user
+}
+
+// ── Freno anti fuerza bruta (por sesión de app) ───────────────────────────────
+const MAX_ATTEMPTS = 5
+const LOCK_MS      = 30000
+const _attempts    = new Map()   // email → { fails, lockedUntil }
+
+function checkThrottle(email) {
+  const a = _attempts.get(email)
+  if (a?.lockedUntil && Date.now() < a.lockedUntil) {
+    const secs = Math.ceil((a.lockedUntil - Date.now()) / 1000)
+    throw new Error(`Demasiados intentos fallidos. Espera ${secs} segundos.`)
+  }
+}
+function registerFail(email) {
+  const a = _attempts.get(email) || { fails:0, lockedUntil:0 }
+  a.fails++
+  if (a.fails >= MAX_ATTEMPTS) { a.lockedUntil = Date.now() + LOCK_MS; a.fails = 0 }
+  _attempts.set(email, a)
+}
+function registerSuccess(email) { _attempts.delete(email) }
 
 // ── Roles ─────────────────────────────────────────────────────────────────────
 export const ROLES = {
@@ -59,25 +130,23 @@ export const authService = {
   // ── LOGIN ──────────────────────────────────────────────────────────────────
   async login(email, password) {
     const em = email.toLowerCase().trim()
+    checkThrottle(em)
 
     // ── MODO ONLINE: Supabase Auth ──────────────────────────────────────────
     if (isSupabaseConfigured() && supabase && navigator.onLine) {
       const { data, error } = await supabase.auth.signInWithPassword({ email: em, password })
       if (error) {
         // Si falla Supabase Auth, intentar con hash local (usuario creado offline)
-        if (isElectron) {
-          const hash = await sha256(password)
-          const local = await db.get(
-            'SELECT * FROM users WHERE LOWER(email)=? AND password_hash=? AND active=1',
-            [em, hash]
-          )
-          if (local) {
-            const u = { id:local.id, name:local.name, email:local.email, role:local.role }
-            save(u); return u
-          }
+        const local = await verifyLocalUser(em, password)
+        if (local) {
+          registerSuccess(em)
+          const u = { id:local.id, name:local.name, email:local.email, role:local.role }
+          save(u); return u
         }
+        registerFail(em)
         throw new Error('Credenciales incorrectas o usuario inactivo.')
       }
+      registerSuccess(em)
 
       // Obtener rol: primero local (más rápido), si no en Supabase
       let roleData = await getRoleLocal(em)
@@ -131,12 +200,9 @@ export const authService = {
 
     // ── FALLBACK: SQLite puro (sin Supabase configurado) ────────────────────
     if (isElectron) {
-      const hash = await sha256(password)
-      const user = await db.get(
-        'SELECT * FROM users WHERE LOWER(email)=? AND password_hash=? AND active=1',
-        [em, hash]
-      )
-      if (!user) throw new Error('Credenciales incorrectas o usuario inactivo.')
+      const user = await verifyLocalUser(em, password)
+      if (!user) { registerFail(em); throw new Error('Credenciales incorrectas o usuario inactivo.') }
+      registerSuccess(em)
       const u = { id:user.id, name:user.name, email:user.email, role:user.role }
       save(u); return u
     }
@@ -198,7 +264,9 @@ export const authService = {
   },
 
   async createUser(data) {
-    const hash = await sha256(data.password)
+    if (!data.password || data.password.length < 8)
+      throw new Error('La contraseña debe tener al menos 8 caracteres.')
+    const hash = await hashPassword(data.password)
     const id   = generateId()
 
     // 1. Guardar en SQLite local
@@ -225,13 +293,28 @@ export const authService = {
 
   async updateUser(id, data) {
     if (!isElectron) return
+
+    // Protección: no dejar el sistema sin ningún administrador activo
+    if (!data.active || data.role !== 'administrador') {
+      const target = await db.get('SELECT role,active FROM users WHERE id=?', [id])
+      if (target?.role === 'administrador' && target?.active) {
+        const admins = await db.get("SELECT COUNT(*) as c FROM users WHERE role='administrador' AND active=1")
+        if ((admins?.c ?? 0) <= 1)
+          throw new Error('No puedes desactivar ni cambiar el rol del único administrador activo.')
+      }
+    }
+
     const updates = {
       name:   data.name,
       email:  data.email.toLowerCase(),
       role:   data.role,
       active: data.active ? 1 : 0,
     }
-    if (data.password) updates.password_hash = await sha256(data.password)
+    if (data.password) {
+      if (data.password.length < 8)
+        throw new Error('La contraseña debe tener al menos 8 caracteres.')
+      updates.password_hash = await hashPassword(data.password)
+    }
     const fields = Object.keys(updates).map(k => `${k}=?`).join(',')
     await db.run(
       `UPDATE users SET ${fields},updated_at=datetime('now') WHERE id=?`,
@@ -241,6 +324,12 @@ export const authService = {
 
   async deleteUser(id) {
     if (!isElectron) return
+    const target = await db.get('SELECT role,active FROM users WHERE id=?', [id])
+    if (target?.role === 'administrador' && target?.active) {
+      const admins = await db.get("SELECT COUNT(*) as c FROM users WHERE role='administrador' AND active=1")
+      if ((admins?.c ?? 0) <= 1)
+        throw new Error('No puedes desactivar al único administrador activo.')
+    }
     await db.run('UPDATE users SET active=0,updated_at=datetime("now") WHERE id=?', [id])
   },
 }
