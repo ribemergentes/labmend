@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" rx="8" fill="#1a56db"/>
+  <circle cx="30" cy="30" r="18" fill="none" stroke="white" stroke-width="2"/>
+  <path d="M22 38 L30 18 L38 38" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <path d="M24 33 L36 33" stroke="white" stroke-width="2"/>
+  <text x="58" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">MendLab</text>
+  <text x="58" y="42" font-family="Arial, sans-serif" font-size="9" fill="#93c5fd">Laboratorio Clínico</text>
+</svg>

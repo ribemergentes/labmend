@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dist-electron/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.local
+electron/gh-token.js
+.claude/
+
+# Guías y docs internos (no publicar: contienen análisis interno del sistema)
+GUIA_*.md
+INSTRUCCIONES_*.md
+COMANDOS_FIX.md
+CLAUDE.md
+SUPABASE_SCHEMA.sql
+estado actual.md
+integracion-consultorio.md
+
+# Carpeta rara
+{src/
+*.RESPALDO-*

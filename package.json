@@ -1,0 +1,95 @@
+{
+  "name": "labmend",
+  "version": "1.1.0",
+  "description": "Sistema de Laboratorio Clínico - LabMend",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on tcp:5173 --timeout 30000 && electron .\"",
+    "dev:web": "vite",
+    "build": "vite build",
+    "electron": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "dist": "npm run rebuild && vite build && electron-builder",
+    "dist:publish": "npm run rebuild && vite build && electron-builder --publish always",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "electron",
+    "laboratorio",
+    "clinico"
+  ],
+  "author": "LabMend",
+  "license": "MIT",
+  "dependencies": {
+    "@emailjs/browser": "^4.3.3",
+    "@supabase/supabase-js": "^2.39.0",
+    "better-sqlite3": "^9.4.3",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.1",
+    "electron-updater": "^6.8.3",
+    "jsbarcode": "^3.11.6",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "lucide-react": "^0.312.0",
+    "nodemailer": "^6.9.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.49.2",
+    "react-router-dom": "^6.22.0",
+    "tailwind-merge": "^2.2.0",
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.12",
+    "vite-plugin-electron": "^0.28.4",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.labmend.app",
+    "productName": "LabMend",
+    "publish": {
+      "provider": "github",
+      "owner": "ribemergentes",
+      "repo": "labmend"
+    },
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!node_modules/.vite/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  }
+}

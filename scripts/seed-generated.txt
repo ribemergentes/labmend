@@ -1,0 +1,527 @@
+function seedCatalog(db) {
+  const { randomBytes } = require('crypto')
+  const uid = () => randomBytes(8).toString('hex')
+  const iE = db.prepare(
+    "INSERT OR IGNORE INTO exams (id,category,name,code,price,currency,active,show_subtitle,subtitles_config) VALUES (?,?,?,?,?,?,1,?,?)"
+  )
+  const iP = db.prepare("INSERT OR IGNORE INTO exam_parameters (id,exam_id,name,unit,input_type,sort_order) VALUES (?,?,?,?,?,?)")
+  const iR = db.prepare("INSERT OR IGNORE INTO reference_values (id,parameter_id,sex,age_min,age_max,value_min,value_max,text_value) VALUES (?,?,?,?,?,?,?,?)")
+
+  // ── HEMATOLOGÍA ───────────────────────────────────────────────
+  iE.run("e_hemo","HEMATOLOGÍA","Hemograma Completo","HEM-001",80,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Hematocrito (Hto)","%","number",0)
+    iR.run(uid(),pid,"M",0,999,47,57,null)
+    iR.run(uid(),pid,"F",0,999,45,54,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Hemoglobina (Hb)","g/dL","number",1)
+    iR.run(uid(),pid,"M",0,999,15.5,18.8,null)
+    iR.run(uid(),pid,"F",0,999,14.8,17.8,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Glóbulos Rojos (RBC)","mill/mm³","number",2)
+    iR.run(uid(),pid,"M",0,999,5.7,6.2,null)
+    iR.run(uid(),pid,"F",0,999,4.9,5.9,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","VES (VSG)","mm/h","number",3)
+    iR.run(uid(),pid,"M",0,999,0,15,null)
+    iR.run(uid(),pid,"F",0,999,0,20,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Glóbulos Blancos (WBC)","/mm³","number",4)
+    iR.run(uid(),pid,null,0,999,5000,10000,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Neutrófilos","%","number",5)
+    iR.run(uid(),pid,null,0,999,55,70,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Eosinófilos","%","number",6)
+    iR.run(uid(),pid,null,0,999,0,4,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Basófilos","%","number",7)
+    iR.run(uid(),pid,null,0,999,0,1,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Linfocitos","%","number",8)
+    iR.run(uid(),pid,null,0,999,20,35,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Monocitos","%","number",9)
+    iR.run(uid(),pid,null,0,999,2,8,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Cayados","%","number",10)
+    iR.run(uid(),pid,null,0,999,0,3,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Plaquetas","/mm³","number",11)
+    iR.run(uid(),pid,null,0,999,150000,450000,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hemo","Observaciones","","textarea",12)
+  })()
+
+  // ── QUÍMICA SANGUÍNEA ─────────────────────────────────────────
+  iE.run("e_glic","QUÍMICA SANGUÍNEA","Glicemia","QUI-001",30,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_glic","Glucosa","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,70,110,null)
+  })()
+
+  iE.run("e_urea","QUÍMICA SANGUÍNEA","Urea","QUI-002",30,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_urea","Urea","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,10,40,null)
+  })()
+
+  iE.run("e_creat","QUÍMICA SANGUÍNEA","Creatinina","QUI-003",30,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_creat","Creatinina","mg/dL","number",0)
+    iR.run(uid(),pid,"M",0,999,0.6,1.2,null)
+    iR.run(uid(),pid,"F",0,999,0.5,1,null)
+  })()
+
+  iE.run("e_tgo","QUÍMICA SANGUÍNEA","Transaminasa TGO (AST)","QUI-004",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_tgo","TGO / AST","U/L","number",0)
+    iR.run(uid(),pid,"M",0,999,0,40,null)
+    iR.run(uid(),pid,"F",0,999,0,38,null)
+  })()
+
+  iE.run("e_tgp","QUÍMICA SANGUÍNEA","Transaminasa TGP (ALT)","QUI-005",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_tgp","TGP / ALT","U/L","number",0)
+    iR.run(uid(),pid,"M",0,999,0,45,null)
+    iR.run(uid(),pid,"F",0,999,0,38,null)
+  })()
+
+  iE.run("e_bili","QUÍMICA SANGUÍNEA","Bilirrubinas","QUI-006",40,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_bili","Bilirrubina Directa","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,0,0.4,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_bili","Bilirrubina Indirecta","mg/dL","number",1)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_bili","Bilirrubina Total","mg/dL","number",2)
+    iR.run(uid(),pid,null,0,999,0,1.2,null)
+  })()
+
+  iE.run("e_col","QUÍMICA SANGUÍNEA","Colesterol","QUI-007",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_col","Colesterol","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,0,200,null)
+  })()
+
+  iE.run("e_hdl","QUÍMICA SANGUÍNEA","Colesterol HDL","QUI-008",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hdl","Colesterol HDL","mg/dL","number",0)
+    iR.run(uid(),pid,"M",0,999,40,999,null)
+    iR.run(uid(),pid,"F",0,999,50,999,null)
+  })()
+
+  iE.run("e_ldl","QUÍMICA SANGUÍNEA","Colesterol LDL","QUI-009",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ldl","Colesterol LDL","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,0,100,null)
+  })()
+
+  iE.run("e_trig","QUÍMICA SANGUÍNEA","Triglicéridos","QUI-010",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_trig","Triglicéridos","mg/dL","number",0)
+    iR.run(uid(),pid,null,0,999,0,150,null)
+  })()
+
+  iE.run("e_au","QUÍMICA SANGUÍNEA","Ácido Úrico","QUI-011",30,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_au","Ácido Úrico","mg/dL","number",0)
+    iR.run(uid(),pid,"M",0,999,3.5,7.2,null)
+    iR.run(uid(),pid,"F",0,999,2.6,6,null)
+  })()
+
+  iE.run("e_prot","QUÍMICA SANGUÍNEA","Proteínas Totales","QUI-012",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_prot","Proteínas Totales","g/dL","number",0)
+    iR.run(uid(),pid,null,0,999,6,8,null)
+  })()
+
+  iE.run("e_alb","QUÍMICA SANGUÍNEA","Albúmina","QUI-013",35,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_alb","Albúmina","g/dL","number",0)
+    iR.run(uid(),pid,null,0,999,3.5,5.5,null)
+  })()
+
+  iE.run("e_p24","QUÍMICA SANGUÍNEA","Proteinuria de 24 Horas","QUI-014",45,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_p24","Proteinuria 24h","mg/24h","number",0)
+    iR.run(uid(),pid,null,0,999,28,170,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_p24","Observaciones","","textarea",1)
+  })()
+
+  iE.run("dfffe34aff2e5b68","QUÍMICA SANGUÍNEA","Creatinuria de 24 Horas","QUI-015",45,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"dfffe34aff2e5b68","Creatinuria 24h","mg/24h","number",0)
+    iR.run(uid(),pid,null,0,999,16,28,"16-28 mg/24h")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"dfffe34aff2e5b68","Observaciones","","textarea",1)
+  })()
+
+  // ── EXAMEN DE ORINA ───────────────────────────────────────────
+  iE.run("e_ego","EXAMEN DE ORINA","Examen General de Orina (EGO)","ORI-001",35,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Volumen","mL","text",0)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Color","","select",1)
+    iR.run(uid(),pid,null,0,999,null,null,"Amarillo palido|Amarillo|Amarillo claro|Amarillo oscuro|Ambar|Palido|Pajizo|Anaranjado|Naranja|Naranja oscuro|Naranja brillante|Rojizo|Rosado|Coral|Cafe|Cafe claro|Caoba|Guindo|Marron|Vino|Verdusco")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Aspecto","","select",2)
+    iR.run(uid(),pid,null,0,999,null,null,"Limpido|Ligeramente opalescente|Opalescente|Turbio")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Densidad","","number",3)
+    iR.run(uid(),pid,null,0,999,1.005,1.03,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","pH","","number",4)
+    iR.run(uid(),pid,null,0,999,5,7,null)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Espuma","","select",5)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Escasa|Poco persistente|Persistente")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Olor","","select",6)
+    iR.run(uid(),pid,null,0,999,null,null,"Sui generis|Fetido|Dulzon|No contiene")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Glucosa","","select",7)
+    iR.run(uid(),pid,null,0,999,null,null,"No contiene|Trazas|Vestigios|100 mg/dL (+)|300 mg/dL (++)|+|++|+++")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Cetonas","","select",8)
+    iR.run(uid(),pid,null,0,999,null,null,"No contiene|Trazas|15 mg/dL|40 mg/dL|80 mg/dL|180 mg/dL")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Proteínas","","select",9)
+    iR.run(uid(),pid,null,0,999,null,null,"No contiene|Trazas|30 mg/dL|100 mg/dL|300 mg/dL|>2000 mg/dL")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Sangre","","select",10)
+    iR.run(uid(),pid,null,0,999,null,null,"No contiene|Vestigios|Trazas|+|++|+++")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Urobilinógeno","","select",11)
+    iR.run(uid(),pid,null,0,999,null,null,"Normal|1 UI/dL|2 UI/dL|3 UI/dL|4 UI/dL|8 UI/dL")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Bilirrubina","","select",12)
+    iR.run(uid(),pid,null,0,999,null,null,"No contiene|Trazas|+|++|+++")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Nitrito","","select",13)
+    iR.run(uid(),pid,null,0,999,null,null,"Negativo (-)|Positivo (+)|Trazas")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Células Epiteliales","/campo","text",14)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Células Renales","/campo","text",15)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Leucocitos","/campo","text",16)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Eritrocitos","/campo","text",17)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Cilindros","/campo","text",18)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Levaduras","","text",19)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Flora Bacteriana","","select",20)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Escasa cantidad|Regular cantidad|Moderada cantidad|Abundante cantidad|Muy escasa|Escasa y mixta|Moderada mixta|Abundante mixta|Escasa activa|Moderada y activa|Abundante y activa")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_ego","Otros","","textarea",21)
+  })()
+
+  // ── CITOLOGÍA ─────────────────────────────────────────────────
+  iE.run("e_pap","CITOLOGÍA","Citología Cérvico-Vaginal (PAP - Bethesda)","CIT-001",120,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Datos Gineco-Obstétricos","","textarea",0)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Adecuación de la Muestra","","textarea",1)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Células Escamosas Superficiales","","textarea",2)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Células Intermedias","","textarea",3)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Células Endocervicales","","textarea",4)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Inflamación","","textarea",5)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Cambios Reactivos","","textarea",6)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Microorganismos","","textarea",7)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Interpretación (Sistema Bethesda)","","textarea",8)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pap","Observaciones","","textarea",9)
+  })()
+
+  // ── MICROBIOLOGÍA ─────────────────────────────────────────────
+  iE.run("e_secvag","MICROBIOLOGÍA","Sec. Vaginal - Fresco y Tinción Gram","MIC-001",60,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","pH","","number",0)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","KOH","","text",1)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","Test de Amina","","text",2)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","Examen en Fresco","","textarea",3)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","Tinción Gram","","textarea",4)
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_secvag","Conclusión","","textarea",5)
+  })()
+
+  // ── COPROLOGÍA ────────────────────────────────────────────────
+  iE.run("e_copro","COPROLOGÍA","Examen General de Heces","COP-001",35,'Bs',1,"[{\"label\":\"Examen Macroscopico\",\"visible\":true,\"params\":[\"Consistencia\",\"Moco\",\"Restos\"]},{\"label\":\"Examen Microscopico\",\"visible\":true,\"params\":[]}]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Consistencia","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"Formada|Blanda|Semi-blanda|Diarreica|Pastosa|Liquida")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Moco","","select",1)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Presente|Escaso|Abundante")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Restos Alimenticios","","select",2)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Presente|Escaso|Abundante")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Leucocitos","/campo","text",3)
+    iR.run(uid(),pid,null,0,999,0,2,"0-2 por campo")
+    iR.run(uid(),pid,null,0,999,null,null,"0-2 por campo")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Eritrocitos","/campo","text",4)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Bacterias","","text",5)
+    iR.run(uid(),pid,null,0,999,null,null,"Flora habitual")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Levaduras","","select",6)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Escasas|Moderadas|Abundantes")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Almidón","","select",7)
+    iR.run(uid(),pid,null,0,999,null,null,"Ausente|Escaso|Moderado|Abundante")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Formas Parasitarias","","textarea",8)
+    iR.run(uid(),pid,null,0,999,null,null,"No se observan")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_copro","Observaciones","","textarea",9)
+  })()
+
+  iE.run("e_hpyl","COPROLOGÍA","Antígeno de Helicobacter pylori en Heces","COP-002",70,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hpyl","Antígeno H. pylori","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"Negativo|Positivo|Débilmente positivo")
+  })()
+
+  iE.run("e_soculta","COPROLOGÍA","Sangre Oculta en Heces","COP-003",40,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_soculta","Sangre Oculta","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"Negativo|Positivo")
+  })()
+
+  // ── SEROLOGÍA ─────────────────────────────────────────────────
+  iE.run("e_fr","SEROLOGÍA","Factor Reumatoideo (FR)","SER-001",50,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_fr","Factor Reumatoideo","IU/mL","text",0)
+    iR.run(uid(),pid,null,0,999,null,null,null)
+  })()
+
+  iE.run("e_asto","SEROLOGÍA","ASTO (Antiestreptolisina O)","SER-002",55,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_asto","ASTO","UI/mL","text",0)
+    iR.run(uid(),pid,null,0,999,null,null,null)
+  })()
+
+  iE.run("e_widal","SEROLOGÍA","Prueba de Widal","SER-003",60,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_widal","Título","dilución","number",0)
+  })()
+
+  iE.run("e_pcr","SEROLOGÍA","Proteína C Reactiva (PCR)","SER-004",50,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_pcr","PCR","mg/dL","text",0)
+    iR.run(uid(),pid,null,0,999,null,null,null)
+  })()
+
+  iE.run("e_hpyls","SEROLOGÍA","Anticuerpos Anti-H. pylori (IgG/IgM)","SER-005",70,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hpyls","Anti-H. pylori","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"No Reactivo|Reactivo")
+  })()
+
+  iE.run("e_hbsag","SEROLOGÍA","HBsAg - Hepatitis B Antígeno de Superficie","SER-006",80,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hbsag","HBsAg","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"No Reactivo|Reactivo")
+  })()
+
+  iE.run("e_vih","SEROLOGÍA","Prueba Rápida VIH","SER-007",90,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_vih","VIH","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"No Reactivo|Reactivo")
+  })()
+
+  iE.run("e_hcg","SEROLOGÍA","Test de Embarazo en Sangre (β-hCG)","SER-008",70,'Bs',0,"[]")
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_hcg","Test de Embarazo (β-hCG)","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"Negativo|Positivo|Debilmente positivo")
+  })()
+
+  // ── INMUNOHEMATOLOGÍA ─────────────────────────────────────────
+  iE.run("e_grupo","INMUNOHEMATOLOGÍA","Grupo Sanguíneo y Factor Rh","INM-001",40,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_grupo","Grupo ABO","","select",0)
+    iR.run(uid(),pid,null,0,999,null,null,"A|B|AB|O")
+  })()
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_grupo","Factor Rh","","select",1)
+    iR.run(uid(),pid,null,0,999,null,null,"Positivo (+)|Negativo (-)")
+  })()
+
+  // ── OTROS ─────────────────────────────────────────────────────
+  iE.run("e_otros","OTROS","Formulario en Blanco","OTR-001",0,'Bs',1,null)
+  ;(()=>{
+    const pid=uid()
+    iP.run(pid,"e_otros","__rows","","textarea",0)
+  })()
+
+}
