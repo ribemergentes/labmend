@@ -28,15 +28,97 @@ export function formatAge(birthDate) {
   return yr || '0 años'
 }
 
+// ── Normalización para comparar/buscar ────────────────────────────────────────
+// CI: sin espacios, puntos ni guiones, en mayúsculas ("  1234567 lp." → "1234567LP")
+export function normalizeCI(ci) {
+  return (ci || '').replace(/[\s.\-]/g, '').toUpperCase()
+}
+// Nombre: minúsculas, sin tildes, espacios colapsados ("MARÍA  Pérez " → "maria perez")
+export function normalizeName(name) {
+  return (name || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim()
+}
+
 export const patientService = {
   async getAll(search = '') {
-    if (search) {
-      const q = `%${search}%`
+    const words = (search || '').trim().split(/\s+/).filter(Boolean)
+    if (words.length) {
+      // Cada palabra debe aparecer en nombre+apellido (juntos), CI o código.
+      // Así "juan perez" encuentra a "JUAN CARLOS PEREZ MAMANI".
+      const cond = words.map(() =>
+        `((first_name || ' ' || last_name) LIKE ? OR id_number LIKE ? OR code LIKE ?)`
+      ).join(' AND ')
+      const params = words.flatMap(w => [`%${w}%`, `%${w}%`, `%${w}%`])
       return db.query(
-        `SELECT * FROM patients WHERE first_name LIKE ? OR last_name LIKE ? OR id_number LIKE ? OR code LIKE ?
-         ORDER BY last_name, first_name`, [q,q,q,q])
+        `SELECT * FROM patients WHERE ${cond} ORDER BY last_name, first_name`, params)
     }
     return db.query('SELECT * FROM patients ORDER BY last_name, first_name')
+  },
+
+  // ── Detección de duplicados (a nivel de aplicación, no de esquema) ──────────
+  // Devuelve { ciMatch, nameMatch } — el paciente existente con el mismo CI
+  // (comparado normalizado) y/o el mismo nombre+apellido (normalizado).
+  // excludeId: en modo edición, el propio paciente no cuenta como duplicado.
+  async findDuplicates({ id_number, first_name, last_name }, excludeId = null) {
+    const all = await db.query(
+      'SELECT id, code, first_name, last_name, id_number FROM patients')
+    const ci   = normalizeCI(id_number)
+    const name = normalizeName(`${first_name || ''} ${last_name || ''}`)
+
+    let ciMatch = null, nameMatch = null
+    for (const p of all) {
+      if (p.id === excludeId) continue
+      if (!ciMatch && ci && normalizeCI(p.id_number) === ci) ciMatch = p
+      if (!nameMatch && name && normalizeName(`${p.first_name} ${p.last_name}`) === name) nameMatch = p
+    }
+
+    // Datos extra para el aviso (cuántas órdenes tiene, última visita)
+    for (const m of [ciMatch, nameMatch]) {
+      if (m && m.order_count === undefined) {
+        const s = await db.get(
+          'SELECT COUNT(*) as c, MAX(created_at) as last FROM orders WHERE patient_id=?', [m.id])
+        m.order_count = s?.c || 0
+        m.last_visit  = s?.last || null
+      }
+    }
+    return { ciMatch, nameMatch }
+  },
+
+  // ── Historial del paciente (solo lectura, usa tablas existentes) ────────────
+  async getStats(patientId) {
+    const orders = await db.get(
+      'SELECT COUNT(*) as total, MAX(created_at) as last_visit FROM orders WHERE patient_id=?',
+      [patientId])
+    const exams = await db.get(
+      `SELECT COUNT(*) as total,
+              SUM(CASE WHEN oe.status='completado' THEN 1 ELSE 0 END) as done
+       FROM order_exams oe JOIN orders o ON oe.order_id=o.id
+       WHERE o.patient_id=?`, [patientId])
+    const paid = await db.get(
+      `SELECT COALESCE(SUM(pm.amount),0) as total
+       FROM payments pm JOIN orders o ON pm.order_id=o.id
+       WHERE o.patient_id=?`, [patientId])
+    return {
+      total_orders: orders?.total || 0,
+      last_visit:   orders?.last_visit || null,
+      total_exams:  exams?.total || 0,
+      exams_done:   exams?.done || 0,
+      total_paid:   paid?.total || 0,
+    }
+  },
+
+  async getHistory(patientId) {
+    return db.query(
+      `SELECT o.id, o.order_number, o.status, o.priority, o.created_at, o.total_amount, o.doctor_name,
+              (SELECT COUNT(*) FROM order_exams oe WHERE oe.order_id=o.id) as exam_count,
+              (SELECT GROUP_CONCAT(e.name, ', ') FROM order_exams oe
+               LEFT JOIN exams e ON oe.exam_id=e.id WHERE oe.order_id=o.id) as exam_names,
+              (SELECT COUNT(*) FROM results r JOIN order_exams oe2 ON r.order_exam_id=oe2.id
+               WHERE oe2.order_id=o.id AND r.is_abnormal=1) as abnormal_count
+       FROM orders o
+       WHERE o.patient_id=?
+       ORDER BY o.created_at DESC`, [patientId])
   },
 
   async getById(id) { return db.get('SELECT * FROM patients WHERE id=?',[id]) },

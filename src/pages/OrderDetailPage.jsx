@@ -285,7 +285,10 @@ export default function OrderDetailPage() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <p className="text-xs font-mono text-slate-400 tracking-widest mb-1">{order.order_number}</p>
-                <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h2
+                  className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  title="Ver ficha e historial del paciente"
+                  onClick={()=>order.patient_id && navigate(`/patients/${order.patient_id}`)}>
                   {order.patient_name}
                 </h2>
                 <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">

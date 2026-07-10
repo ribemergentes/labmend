@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import PatientsPage from './pages/PatientsPage'
 import PatientFormPage from './pages/PatientFormPage'
+import PatientHistoryPage from './pages/PatientHistoryPage'
 import OrdersPage from './pages/OrdersPage'
 import OrderFormPage from './pages/OrderFormPage'
 import OrderDetailPage from './pages/OrderDetailPage'
@@ -41,6 +42,7 @@ export default function App() {
           <Route index element={<DashboardPage/>}/>
           <Route path="patients" element={<PatientsPage/>}/>
           <Route path="patients/new" element={<PatientFormPage/>}/>
+          <Route path="patients/:id" element={<PatientHistoryPage/>}/>
           <Route path="patients/:id/edit" element={<PatientFormPage/>}/>
           <Route path="orders" element={<OrdersPage/>}/>
           <Route path="orders/new" element={<OrderFormPage/>}/>

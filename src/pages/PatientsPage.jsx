@@ -127,13 +127,15 @@ export default function PatientsPage() {
                 <div key={p.id}
                   className="grid grid-cols-[auto_1fr_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors group">
 
-                  {/* Avatar */}
-                  <AvatarInitials firstName={p.first_name} lastName={p.last_name} sex={p.sex}/>
+                  {/* Avatar (clic → ficha del paciente) */}
+                  <div className="cursor-pointer" onClick={()=>navigate(`/patients/${p.id}`)}>
+                    <AvatarInitials firstName={p.first_name} lastName={p.last_name} sex={p.sex}/>
+                  </div>
 
-                  {/* Info principal */}
-                  <div className="min-w-0">
+                  {/* Info principal (clic → ficha del paciente) */}
+                  <div className="min-w-0 cursor-pointer" onClick={()=>navigate(`/patients/${p.id}`)}>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {p.last_name}, {p.first_name}
                       </p>
                       {p.sex && (

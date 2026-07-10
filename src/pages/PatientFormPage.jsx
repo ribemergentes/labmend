@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { patientService } from '../services/patients'
 import { useAppStore } from '../store/appStore'
 import { Spinner } from '../components/ui/index'
-import { ChevronLeft, Save, User, Phone, MapPin, FileText, MessageSquare, Mail } from 'lucide-react'
+import { sqlDate } from '../services/database'
+import { ChevronLeft, Save, User, Phone, MapPin, FileText, MessageSquare, Mail, AlertTriangle, Ban, History, Plus } from 'lucide-react'
 
 const DEF = { first_name:'', last_name:'', birth_date:'', sex:'', id_number:'', phone:'', whatsapp:'', email:'', address:'', notes:'' }
 
@@ -39,6 +40,51 @@ function Section({ icon: Icon, title, description, children }) {
 
 const inputCls = "w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 dark:focus:border-blue-500 transition-all"
 
+// Aviso de paciente existente (bloqueante para CI, informativo para nombre)
+function DuplicateBanner({ match, blocking, onHistory, onNewOrder }) {
+  if (!match) return null
+  const visits = match.order_count > 0
+    ? `${match.order_count} orden${match.order_count!==1?'es':''} registrada${match.order_count!==1?'s':''}` +
+      (match.last_visit ? ` · última: ${sqlDate(match.last_visit)?.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})||''}` : '')
+    : 'sin órdenes registradas'
+  return (
+    <div className={`rounded-2xl border p-4 space-y-2.5 ${blocking
+      ? 'bg-red-50 border-red-200 dark:bg-red-900/15 dark:border-red-800/60'
+      : 'bg-amber-50 border-amber-200 dark:bg-amber-900/15 dark:border-amber-800/60'}`}>
+      <div className="flex items-start gap-2.5">
+        {blocking
+          ? <Ban size={16} className="text-red-500 mt-0.5 flex-shrink-0"/>
+          : <AlertTriangle size={16} className="text-amber-500 mt-0.5 flex-shrink-0"/>}
+        <div className="text-sm">
+          <p className={`font-bold ${blocking ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
+            {blocking ? 'Este carnet ya pertenece a un paciente registrado' : 'Ya existe un paciente con este nombre'}
+          </p>
+          <p className="text-slate-600 dark:text-slate-300 mt-0.5">
+            {match.first_name} {match.last_name} ({match.code}{match.id_number ? `, CI ${match.id_number}` : ', sin CI'}) — {visits}
+          </p>
+          {!blocking && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              ¿Es la misma persona? Revisa su historial. Si es un paciente distinto, puedes continuar normalmente.
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pl-7">
+        <button type="button"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          onClick={onHistory}>
+          <History size={12}/> Ver su historial
+        </button>
+        <button type="button"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
+          onClick={onNewOrder}>
+          <Plus size={12}/> Nueva orden para este paciente
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function PatientFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -46,6 +92,7 @@ export default function PatientFormPage() {
   const [form, setForm] = useState(DEF)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [dup, setDup] = useState({ ci: null, name: null })
   const isEdit = !!id
 
   useEffect(() => {
@@ -60,9 +107,29 @@ export default function PatientFormPage() {
 
   const set = f => e => setForm(v=>({...v,[f]:e.target.value}))
 
+  // Detección de duplicados mientras se escribe (consulta local, con espera breve)
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!form.id_number && !(form.first_name && form.last_name)) { setDup({ci:null,name:null}); return }
+      try {
+        const { ciMatch, nameMatch } = await patientService.findDuplicates(form, id || null)
+        setDup({ ci: ciMatch, name: nameMatch })
+      } catch { /* sin conexión a BD: no bloquear el formulario */ }
+    }, 450)
+    return () => clearTimeout(t)
+  }, [form.id_number, form.first_name, form.last_name, id])
+
   async function handleSubmit(e) {
     e.preventDefault(); setSaving(true)
     try {
+      // Red de seguridad: re-verificar justo antes de guardar
+      // (el CI duplicado bloquea; el nombre repetido solo advierte y no impide guardar)
+      const { ciMatch } = await patientService.findDuplicates(form, id || null)
+      if (ciMatch) {
+        setDup(d => ({ ...d, ci: ciMatch }))
+        addNotification(`Este carnet ya pertenece a ${ciMatch.first_name} ${ciMatch.last_name} (${ciMatch.code})`, 'error')
+        return
+      }
       if (isEdit) { await patientService.update(id,form); addNotification('Paciente actualizado','success') }
       else { await patientService.create(form); addNotification('Paciente creado correctamente','success') }
       navigate('/patients')
@@ -110,6 +177,13 @@ export default function PatientFormPage() {
           </div>
         </div>
 
+        {/* Aviso: mismo nombre+apellido (advierte, no bloquea). Se oculta si ya hay aviso de CI. */}
+        {!dup.ci && (
+          <DuplicateBanner match={dup.name} blocking={false}
+            onHistory={()=>navigate(`/patients/${dup.name.id}`)}
+            onNewOrder={()=>navigate(`/orders/new?patient=${dup.name.id}`)}/>
+        )}
+
         {/* Sección: Identificación */}
         <div className="bg-white dark:bg-[#161b27] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-5">
           <Section icon={User} title="Identificación" description="Datos personales del paciente">
@@ -130,6 +204,11 @@ export default function PatientFormPage() {
             </div>
           </Section>
         </div>
+
+        {/* Aviso: carnet ya registrado (bloquea el guardado) */}
+        <DuplicateBanner match={dup.ci} blocking={true}
+          onHistory={()=>navigate(`/patients/${dup.ci.id}`)}
+          onNewOrder={()=>navigate(`/orders/new?patient=${dup.ci.id}`)}/>
 
         {/* Sección: Contacto */}
         <div className="bg-white dark:bg-[#161b27] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
@@ -177,9 +256,10 @@ export default function PatientFormPage() {
           <button type="button" className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={()=>navigate('/patients')}>
             Cancelar
           </button>
-          <button type="submit" disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-bold shadow-sm shadow-blue-600/30 transition-colors">
-            <Save size={15}/>{saving ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Paciente'}
+          <button type="submit" disabled={saving || !!dup.ci}
+            title={dup.ci ? 'El carnet pertenece a un paciente ya registrado' : undefined}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold shadow-sm shadow-blue-600/30 transition-colors">
+            <Save size={15}/>{saving ? 'Guardando...' : dup.ci ? 'Carnet ya registrado' : isEdit ? 'Guardar Cambios' : 'Crear Paciente'}
           </button>
         </div>
       </form>
